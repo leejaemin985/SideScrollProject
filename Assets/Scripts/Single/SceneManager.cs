@@ -31,6 +31,7 @@ public class SceneManager : ManagerClassBase<SceneManager>
         {
             return (FindObjectOfType<SceneInstance>() ??
                 new GameObject("SceneInstance").AddComponent<SceneInstance>()) as T;
+            
         }
 
         return _SceneInstance as T;
