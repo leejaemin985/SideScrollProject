@@ -54,12 +54,44 @@ public class PlayerMovement : MonoBehaviour
     private bool _IsJump;
 
     /// <summary>
+    /// 오른쪽을 바라	보고 있음을 나타냅니다.
+    /// </summary>
+    private bool _IsRight;
+
+    /// <summary>
+    /// 이동 입력을 허용합니다.
+    /// </summary>
+    private bool _AllowMovementInput = true;
+
+    /// <summary>
     /// 캐릭터 영역을 나타냅니다.
     /// </summary>
     private BoxCollider _BoxCollider;
 
     public BoxCollider boxCollider => _BoxCollider ??
         (_BoxCollider = GetComponent<BoxCollider>());
+
+    /// <summary>
+    /// 속도에 대한 읽기 전용 프로퍼티입니다.
+    /// </summary>
+    public Vector3 velocity => _Velocity;
+
+    /// <summary>
+    /// 오른쪽을 바라보고 있음을 나타냅니다.
+    /// </summary>
+    public bool isRight => _IsRight;
+
+    /// <summary>
+    /// 땅에 닿아있음을 나타냅니다.
+    /// </summary>
+    public bool isGrounded => _IsGrounded;
+
+
+    /// <summary>
+    /// 방향이 변경되었을 경우 발생하는 이벤트
+    /// isRight: 오른쪽 방향일 경우 True가 전달됩니다.
+    /// </summary>
+    public event System.Action<bool> onDirectionChaged;
 
 
     #region DEBUG
@@ -70,17 +102,20 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // 입력 값을 속도로 변환합니다.
-        _Velocity.x = _InputVelocity.x * m_Speed * Time.fixedDeltaTime;
+        // 평면 발사 시작 위치
+        Vector3 origin = transform.position + boxCollider.center;
+
+        // 캐릭터 절반 크기
+        Vector3 halfSize = boxCollider.size * 0.5f;
 
         // X 축 속도 계산
-        CalculateVelocityX();
-
+        CalculateVelocityX(origin, halfSize);
 
         // Y 축 속도 계산
-        CalculateVelocityY();
+        CalculateVelocityY(origin, halfSize);
 
-
+        // 방향을 갱신합니다.
+        UpdateDirection();
 
         // 계산된 속도로 이동합니다.
         transform.position += _Velocity;
@@ -89,15 +124,26 @@ public class PlayerMovement : MonoBehaviour
     /// <summary>
     /// X 축 속도를 계산합니다.
     /// </summary>
-    private void CalculateVelocityX()
+    private void CalculateVelocityX(Vector3 origin, Vector3 halfSize)
     {
-        Vector3 direction = _InputVelocity.normalized;
-        Vector3 start = transform.position + boxCollider.center + (direction * m_SkinWidth);
-        float maxDistance = Mathf.Abs(_Velocity.x);
+        float velocityX = _Velocity.x;
+
+        // 입력 값을 속도로 변환합니다.
+        velocityX = (_AllowMovementInput ? _InputVelocity.x : 0.0f) * m_Speed * Time.fixedDeltaTime;
+
+        // X 축 방향으로 쏠 사각형의 절반 크기
+        Vector3 halfZYSizeWithSkin = halfSize - (Vector3.one * m_SkinWidth);
+        halfZYSizeWithSkin.x = 0.0f;
+
+        Vector3 direction = Vector3.right * Mathf.Sign(_InputVelocity.x);
+
+        // 검사 길이
+        float maxDistance = halfSize.x + Mathf.Abs(velocityX);
 
         RaycastHit hitResult;
         bool isHit = CheckCollision(
-            start,
+            origin,
+            halfZYSizeWithSkin,
             direction,
             maxDistance,
             out hitResult,
@@ -105,119 +151,74 @@ public class PlayerMovement : MonoBehaviour
 
         if (isHit)
         {
+            float distance = hitResult.distance - halfSize.x;
+
             // 벽을 감지한 경우 벽까지 이동하며, 벽을 통과하지 않도록 합니다.
             int sign = direction.x > 0.0f ? 1 : -1;
-            _Velocity.x = hitResult.distance * sign;
+            velocityX = distance * sign;
         }
+
+        _Velocity.x = velocityX;
     }
 
-    private void CalculateVelocityY()
+    private void CalculateVelocityY(Vector3 origin, Vector3 halfSize)
     {
+        _IsGrounded = false;
+
         float gravity = Mathf.Abs(Physics.gravity.y) * m_GravityMultiplier * Time.fixedDeltaTime;
         float velocityY = _Velocity.y;
 
-        float addYSpeed = -gravity;
-        float floorDistance;
-        _IsGrounded = IsGrounded(out floorDistance);
-        
-        // 땅을 감지했음을 나타냅니다.
-        bool detectFloor = floorDistance >= 0.0f;
+        // 중력 연산
+        velocityY -= gravity;
 
         if (_IsJump)
         {
-            addYSpeed = m_JumpPower * Time.fixedDeltaTime;
-            _IsGrounded = false;
             _IsJump = false;
+            velocityY = m_JumpPower;
         }
 
-        if (_IsGrounded)
-        {
-            velocityY = 0.0f;
-        }
-        else
-        {
-            if (detectFloor && velocityY < 0)
-            {
-                if (Mathf.Abs(addYSpeed) + Mathf.Abs(velocityY) > floorDistance)
-                {
-                    velocityY = 0.0f;
-                    addYSpeed = -floorDistance;
-                }
-            }
 
-            velocityY += addYSpeed;
+        // Y 축 방향으로 쏠 평면의 절반 크기를 계산합니다.
+        Vector3 halfXZSizeWithSkin = halfSize - (Vector3.one * m_SkinWidth);
+        halfXZSizeWithSkin.y = 0.0f;
+
+        // 방향
+        Vector3 direction = Vector3.up * Mathf.Sign(velocityY);
+
+        // 검사 길이
+        float maxDistance = halfSize.y + Mathf.Abs(velocityY);
+
+        RaycastHit hitResult;
+        bool isHit = CheckCollision(
+            origin,
+            halfXZSizeWithSkin,
+            direction,
+            maxDistance,
+            out hitResult,
+            out _CheckFloorDrawGizmoInfo);
+
+        if (isHit)
+        {
+            if (velocityY < 0.0f) _IsGrounded = true;
+
+            float distance = hitResult.distance - halfSize.y;
+            velocityY = distance * direction.y;
         }
 
         _Velocity.y = velocityY;
     }
 
 
-    /// <summary>
-    /// 바닥에 닿아있음을 확인합니다.
-    /// </summary>
-    /// <param name="distanceIfDetected">
-    /// 바닥에 닿아있지 않을 경우 바닥을 감지한다면 skinWidth 를 제외한 캐릭터 하단부터 바닥까지의 거리를 반환합니다.
-    /// -1 이 아닌 값을 반환합니다.</param>
-    /// <returns></returns>
-    private bool IsGrounded(out float distanceIfDetected)
-    {
-        // 기본 검사 길이를 계산합니다.
-        float defaultLength = boxCollider.size.y + m_SkinWidth;
-
-        // Y 속력을 얻습니다.
-        float yVelocityLength = (Mathf.Abs(_Velocity.y) + m_SkinWidth);
-
-
-        // 바닥 검사를 위하여 밑으로 박스를 쏠 길이입니다.
-        float checkLength = (yVelocityLength > defaultLength) ?
-            yVelocityLength : defaultLength;
-
-        // 아래를 향해 BoxCast 를 진행합니다.
-        RaycastHit hitResult;
-        bool isHit = CheckCollision(
-            transform.position,
-            Vector3.down,
-            checkLength,
-            out hitResult,
-            out _CheckFloorDrawGizmoInfo);
-
-        distanceIfDetected = -1;
-
-        // 바닥을 감지한 경우
-        if (isHit)
-        {
-            // skinWidth 가 적용된 캐릭터 하단 Y 위치를 계산합니다.
-            float characterBottomYPos = (transform.position.y + boxCollider.center.y) -
-                (boxCollider.size.y * 0.5f) - m_SkinWidth;
-
-            // 감지된 Y 위치를 얻습니다.
-            float detectedFloorYPos = hitResult.point.y;
-
-            // 바닥까지의 거리를 반환합니다.
-            //distanceIfDetected = hitResult.distance;
-            distanceIfDetected = Mathf.Abs(characterBottomYPos - detectedFloorYPos);
-
-            // 감지된 바닥의 높이가 캐릭터 발 위치보다 더 낮은 위치인 경우 바닥에 닿아있지 않습니다.
-            // 그렇지 않은 경우 바닥에 닿아있음.
-            return (detectedFloorYPos >= characterBottomYPos - 0.001f);
-            //print($"detectedFloorYPos:{detectedFloorYPos}\tcharacterBottomYPos:{characterBottomYPos}");
-            //return true;
-        }
-
-        return false;
-    }
 
 
     private bool CheckCollision(
         Vector3 start,
+        Vector3 halfSize,
         Vector3 direction,
         float maxDistance,
         out RaycastHit hitResdult,
         out DrawGizmoCubeInfo drawGizmoInfo)
     {
-        // 박스의 절반 크기
-        Vector3 halfSize = boxCollider.size * 0.5f;
-
         bool isHit = PhysicsExt.BoxCast(
             out drawGizmoInfo,
             // Boxcast 시작 위치
@@ -240,8 +241,29 @@ public class PlayerMovement : MonoBehaviour
         return isHit;
     }
 
+
+
+    /// <summary>
+    /// 방향을 갱신합니다.
+    /// </summary>
+    private void UpdateDirection()
+    {
+        if (!_AllowMovementInput) return;
+
+        // 사용자 입력이 존재하는 경우에만 실행합니다.
+        if (_InputVelocity.sqrMagnitude > 0.0f)
+        {
+            _IsRight = _Velocity.x > 0.0f;
+
+            onDirectionChaged?.Invoke(_IsRight);
+        }
+    }
+
+
+
     public void OnMovementInput(Vector2 axisValue)
     {
+        //_InputVelocity.x = _AllowMovementInput ? axisValue.x : 0.0f;
         _InputVelocity.x = axisValue.x;
     }
 
@@ -252,6 +274,11 @@ public class PlayerMovement : MonoBehaviour
             _IsJump = true;
         }
 
+    }
+
+    public void AllowMovementInput(bool allow)
+    {
+        _AllowMovementInput = allow;
     }
 
 #if UNITY_EDITOR
@@ -265,6 +292,7 @@ public class PlayerMovement : MonoBehaviour
         //Gizmos.DrawWireCube(transform.position, boxCollider.size + (Vector3.one * m_SkinWidth));
 
         PhysicsExt.DrawGizmoBox(_CheckXDrawGizmoInfo);
+        PhysicsExt.DrawGizmoBox(_CheckFloorDrawGizmoInfo);
     }
 #endif
 

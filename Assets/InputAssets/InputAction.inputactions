@@ -3,12 +3,12 @@
     "maps": [
         {
             "name": "GameInput",
-            "id": "e1b6e7f6-52a8-4f85-aafb-8cf56f40f374",
+            "id": "cc6dd168-a506-4ab2-ad9a-cc1a9a4f2201",
             "actions": [
                 {
                     "name": "Move",
                     "type": "Value",
-                    "id": "dd35698a-b937-4d91-9993-0953f0c699d3",
+                    "id": "e9725919-ac5a-4ec1-875a-5198bc892ca5",
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
@@ -17,7 +17,16 @@
                 {
                     "name": "Jump",
                     "type": "Button",
-                    "id": "66be8765-8c2c-4a81-a122-762643b768cc",
+                    "id": "76229aeb-8764-4f29-918b-cfc3cb379295",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Attack",
+                    "type": "Button",
+                    "id": "9b7bad24-533b-423c-bdf0-c8dba6bb2357",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -27,7 +36,7 @@
             "bindings": [
                 {
                     "name": "2D Vector",
-                    "id": "852f77e3-2e50-4465-9a0f-3f5a0cd330f1",
+                    "id": "9d40ceab-25ca-480b-9551-e9651113b457",
                     "path": "2DVector",
                     "interactions": "",
                     "processors": "",
@@ -38,7 +47,7 @@
                 },
                 {
                     "name": "up",
-                    "id": "149c4741-e1ee-4b74-a632-9ca1f07a70e3",
+                    "id": "7201be4d-2d5c-4647-b2eb-325137baa8da",
                     "path": "<Keyboard>/upArrow",
                     "interactions": "",
                     "processors": "",
@@ -49,7 +58,7 @@
                 },
                 {
                     "name": "down",
-                    "id": "d9902e00-bdb8-4396-a9fb-d93f143d7cb1",
+                    "id": "ad03a3e1-98c6-451e-83c5-d44c2dffafa5",
                     "path": "<Keyboard>/downArrow",
                     "interactions": "",
                     "processors": "",
@@ -60,7 +69,7 @@
                 },
                 {
                     "name": "left",
-                    "id": "8d863a5b-8eb0-4d41-a378-54982027a6f8",
+                    "id": "6ed9bad2-64fb-4a8a-9f1e-0897c31b11d2",
                     "path": "<Keyboard>/leftArrow",
                     "interactions": "",
                     "processors": "",
@@ -71,7 +80,7 @@
                 },
                 {
                     "name": "right",
-                    "id": "ea3b4349-0dbc-4454-85d0-e3f3c8500547",
+                    "id": "7d45e351-0189-41e9-b80e-7c0897365f9b",
                     "path": "<Keyboard>/rightArrow",
                     "interactions": "",
                     "processors": "",
@@ -82,12 +91,23 @@
                 },
                 {
                     "name": "",
-                    "id": "a00a9ac8-7dbe-4928-8ae2-0546e2954d82",
+                    "id": "8688d8a0-4023-48b5-b298-fc79f45ae4ea",
                     "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Jump",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1c33828-2e17-4764-b130-897f01dd58b2",
+                    "path": "<Keyboard>/x",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Attack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

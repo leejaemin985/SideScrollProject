@@ -8,7 +8,7 @@ public sealed class FollowCamera : MonoBehaviour
     public float m_CameraDistance = 10.0f;
 
     [Header("카메라 이동")]
-    public float m_CameraFollowSpeed = .6f;
+    public float m_CameraFollowSpeed = 0.6f;
 
 
     /// <summary>
@@ -51,14 +51,22 @@ public sealed class FollowCamera : MonoBehaviour
         Vector3 moveMaxPosition = _CameraArea.cameraAreaMax - halfSize;
 
         // 카메라 위치를 연산합니다.
-        Vector3 newPosition = Vector3.MoveTowards(transform.position, _TargetPosition, m_CameraFollowSpeed * Time.deltaTime);
+        Vector3 newPosition =
+            Vector3.MoveTowards(
+            transform.position,
+            _TargetPosition,
+            m_CameraFollowSpeed * Time.deltaTime);
 
-        Debug.Log("_TargetPosition = " + _TargetPosition);
+        Vector3 cameraAreaCenter = _CameraArea.cameraAreaMin + (_CameraArea.area.size * 0.5f);
 
         // moveMinPosition ~ moveMaxPosition 사이에 카메라가 배치될 수 있도록 합니다.
         newPosition.x = Mathf.Clamp(newPosition.x, moveMinPosition.x, moveMaxPosition.x);
         newPosition.y = Mathf.Clamp(newPosition.y, moveMinPosition.y, moveMaxPosition.y);
-        Debug.Log("newPosition = " + newPosition);
+
+        if (_CameraArea.area.size.x < _CameraViewSize.x)
+            newPosition.x = cameraAreaCenter.x;
+        if (_CameraArea.area.size.y < _CameraViewSize.y)
+            newPosition.y = cameraAreaCenter.y;
 
         // 연산된 위치를 적용합니다.
         transform.position = newPosition;
